@@ -10,5 +10,6 @@ namespace Application.Services
         Task<UserPreferenceDto> CreatePreferenceAsync(CreateUserPreferenceDto preference);
         Task UpdatePreferenceAsync(int id, UpdateUserPreferenceDto preference);
         Task DeletePreferenceAsync(int id);
+        Task<IEnumerable<UserPreferenceDto>> GetAllPreferencesAsync();
     }
 } 

@@ -75,45 +75,53 @@ namespace Infrastructure.Services
             }
         }
 
-        public async Task<UserPreferenceDto> CreatePreferenceAsync(CreateUserPreferenceDto preferenceDto)
+        public async Task<UserPreferenceDto> CreatePreferenceAsync(CreateUserPreferenceDto preference)
         {
             try
             {
-                var preference = new UserPreference(
-                    preferenceDto.UserId.ToString(),
-                    preferenceDto.StockSymbol,
-                    preferenceDto.ThresholdPrice);
+                var userPreference = new UserPreference(
+                    preference.UserId.ToString(),
+                    preference.StockSymbol,
+                    preference.ThresholdPrice
+                );
 
-                await _context.UserPreferences.AddAsync(preference);
+                await _context.UserPreferences.AddAsync(userPreference);
                 await _context.SaveChangesAsync();
 
-                return _mapper.Map<UserPreferenceDto>(preference);
+                _logger.LogInformation("Created preference for user {UserId} for stock {Symbol}", 
+                    preference.UserId, preference.StockSymbol);
+
+                return _mapper.Map<UserPreferenceDto>(userPreference);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating preference for user: {UserId}", preferenceDto.UserId);
+                _logger.LogError(ex, "Error creating preference for user {UserId}", preference.UserId);
                 throw;
             }
         }
 
-        public async Task UpdatePreferenceAsync(int id, UpdateUserPreferenceDto preferenceDto)
+        public async Task UpdatePreferenceAsync(int id, UpdateUserPreferenceDto preference)
         {
             try
             {
-                var preference = await _context.UserPreferences
+                var existingPreference = await _context.UserPreferences
                     .FirstOrDefaultAsync(p => p.Id == id);
 
-                if (preference == null)
+                if (existingPreference == null)
                 {
+                    _logger.LogWarning("Preference not found with ID: {Id}", id);
                     throw new NotFoundException($"Preference not found with ID: {id}");
                 }
 
-                preference.UpdateThreshold(preferenceDto.NewThresholdPrice);
+                existingPreference.UpdateThreshold(preference.NewThresholdPrice);
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Updated preference {Id} with new threshold {Threshold}", 
+                    id, preference.NewThresholdPrice);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating preference with ID: {Id}", id);
+                _logger.LogError(ex, "Error updating preference {Id}", id);
                 throw;
             }
         }
@@ -127,17 +135,29 @@ namespace Infrastructure.Services
 
                 if (preference == null)
                 {
+                    _logger.LogWarning("Preference not found with ID: {Id}", id);
                     throw new NotFoundException($"Preference not found with ID: {id}");
                 }
 
                 _context.UserPreferences.Remove(preference);
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Deleted preference {Id}", id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting preference with ID: {Id}", id);
+                _logger.LogError(ex, "Error deleting preference {Id}", id);
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<UserPreferenceDto>> GetAllPreferencesAsync()
+        {
+            var preferences = await _context.UserPreferences
+                .AsNoTracking()  // For better performance since we're only reading
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<UserPreferenceDto>>(preferences);
         }
     }
 } 

@@ -9,6 +9,7 @@ using Kaar.Infrastructure.Database.Context;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Builder;
+using Kaar.BackgroundServices.Services;
 
 var builder = Host.CreateDefaultBuilder(args)
     .ConfigureWebHostDefaults(webBuilder =>
@@ -40,6 +41,8 @@ var builder = Host.CreateDefaultBuilder(args)
             // Register services
             services.AddScoped<IStockPriceService, StockPriceService>();
             services.AddScoped<IUserPreferenceService, UserPreferenceService>();
+            services.AddHostedService<StockPriceMonitorService>();
+            services.AddScoped<INotificationService, ConsoleNotificationService>();
         });
 
         webBuilder.Configure((context, app) =>
